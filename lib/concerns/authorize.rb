@@ -25,20 +25,19 @@ module Authorize
     def open_page(client_id)
         puts "Signing in...".colorize(:yellow)
 
-        browser = Ferrum::Browser.new
-        browser.goto("https://accounts.spotify.com/authorize?client_id=#{client_id}&response_type=code&redirect_uri=http://localhost:8000&scope=user-read-private")
-        username_input = browser.at_css("#login-username")
+        @browser = Ferrum::Browser.new
+        @browser.goto("https://accounts.spotify.com/authorize?client_id=#{client_id}&response_type=code&redirect_uri=http://localhost:8000&scope=user-read-private")
+        username_input = @browser.at_css("#login-username")
         username_input.type(@username, :tab).type(@password)
         # password_input = browser.at_css("#login-password") 
         # password_input.type(@password)
-        login = browser.at_css("#login-button")
+        login = @browser.at_css("#login-button")
         login.click
         
         puts "Authorizing user...".colorize(:yellow)
-        sleep(1) #Needs to stop for one second because Ferrum gets stuck when it redirects to a new link
 
         self.first_time
-        usr_code = browser.current_url.gsub("http://localhost:8000/?", "")
+        usr_code = @browser.current_url.gsub("http://localhost:8000/?", "")
 
         if usr_code.include?("code=")
             self.code = usr_code
@@ -51,9 +50,13 @@ module Authorize
     def get_token
         self.sign_in(@client_id)
         puts "\nGetting access token & refresh token...".colorize(:yellow)
+        encoded_keys = Base64.encode64("#{self.client_id}:#{self.client_secret}").gsub("\n", "") 
         request_token = HTTParty.post("https://accounts.spotify.com/api/token", {
-                            body: "grant_type=authorization_code&#{code}&redirect_uri=http://localhost:8000&client_id=#{client_id}&client_secret=#{client_secret}"
-                            })
+                            body: "grant_type=authorization_code&#{code}&redirect_uri=http://localhost:8000",
+                            headers: {  
+                                "Content-Type" => "application/x-www-form-urlencoded",
+                                "Authorization" => "Basic #{encoded_keys}"
+                            }})
         puts "Saving access token...".colorize(:yellow)
         self.access_token = request_token["access_token"]
         API.token(self.access_token)
@@ -82,7 +85,8 @@ module Authorize
         input = gets.strip.downcase
 
         if input == "yes"
-            agree = browser.at_css("#auth-accept")
+            sleep(1) #Needs to stop for one second because Ferrum gets stuck when it redirects to a new link
+            agree = @browser.at_css("#auth-accept")
             agree.click       
         end
     end
