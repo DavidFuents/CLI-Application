@@ -1,4 +1,4 @@
-# Cli
+# CLI
 
 Hello this is my first big project with Ruby. For this project, I decided to bring Spotify Search to Command Line. Search for any artist, song or album to get back a few details related to it.
 
